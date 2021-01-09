@@ -53,6 +53,57 @@ func new(data interface{}) *Jsonic {
 	}
 }
 
+func (j *Jsonic) childFromArray(array []interface{}, path []string) (*Jsonic, error) {
+	// get the index, which should be there as the first path element
+	index, err := getIndex(path[0])
+	if err != nil {
+		// some problem with the index
+		return nil, ErrIndexNotFound
+	}
+	if index < 0 || index >= len(array) {
+		// index out of bound
+		return nil, ErrIndexOutOfBound
+	}
+	// check in cache for the child
+	if cached := j.checkInCache(strconv.Itoa(index)); cached != nil {
+		return cached.child(path[1:])
+	}
+	// create a child, and save it
+	child := new(array[index])
+	j.saveInCache(strconv.Itoa(index), child)
+	return child.child(path[1:])
+}
+
+func (j *Jsonic) childFromObject(object map[string]interface{}, path []string) (*Jsonic, error) {
+	current := path[0]
+	// this loop is to handle the following scenario
+	// say the path elements are as follows a, b and c
+	// it might so happen that each of a, a.b and a.b.c are
+	// present in the json data as keys, so we should give
+	// each of them a fair chance. the only thing is we
+	// are giving preference in the following order a > a.b > a.b.c
+	for i, p := range path {
+		if cached := j.checkInCache(current); cached != nil {
+			result, err := cached.child(path[i+1:])
+			if err == nil {
+				// result found successfully
+				return result, nil
+			}
+		} else if data, ok := object[current]; ok {
+			child := new(data)
+			j.saveInCache(current, child)
+			result, err := child.child(path[i+1:])
+			if err == nil {
+				// result found successfully
+				return result, nil
+			}
+		}
+		// nothing here, check further
+		current = joinPath(current, p)
+	}
+	return nil, ErrNoDataFound
+}
+
 func (j *Jsonic) child(path []string) (*Jsonic, error) {
 	// first the base condition
 	if len(path) == 0 {
@@ -63,56 +114,10 @@ func (j *Jsonic) child(path []string) (*Jsonic, error) {
 	// we need to check that
 	// and accordingly proceed
 	if array, ok := j.data.([]interface{}); ok {
-		// get the index, which should be there as the first path element
-		index, err := getIndex(path[0])
-		if err != nil {
-			// some problem with the index
-			return nil, ErrIndexNotFound
-		}
-		if index < 0 || index >= len(array) {
-			// index out of bound
-			return nil, ErrIndexOutOfBound
-		}
-		// check in cache for the child
-		if cached := j.checkInCache(strconv.Itoa(index)); cached != nil {
-			return cached.child(path[1:])
-		}
-		// create a child, and save it
-		child := new(array[index])
-		j.saveInCache(strconv.Itoa(index), child)
-		return child.child(path[1:])
+		return j.childFromArray(array, path)
 	}
 	if object, ok := j.data.(map[string]interface{}); ok {
-		current := path[0]
-		// this loop is to handle the following scenario
-		// say the path elements are as follows a, b and c
-		// it might so happen that each of a, a.b and a.b.c are
-		// present in the json data as keys, so we should give
-		// each of them a fair chance. the only thing is we
-		// are giving preference in the following order a > a.b > a.b.c
-		for i, p := range path {
-			if cached := j.checkInCache(current); cached != nil {
-				result, err := cached.child(path[i+1:])
-				if err == nil {
-					// result found successfully
-					return result, nil
-				}
-				current = joinPath(current, p)
-				continue
-			}
-			// result not in cache
-			if data, ok := object[current]; ok {
-				child := new(data)
-				j.saveInCache(current, child)
-				result, err := child.child(path[i+1:])
-				if err == nil {
-					// result found successfully
-					return result, nil
-				}
-			}
-			// nothing here, check further
-			current = joinPath(current, p)
-		}
+		return j.childFromObject(object, path)
 	}
 	return nil, ErrUnexpectedJSONData
 
