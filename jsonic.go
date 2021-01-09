@@ -42,6 +42,9 @@ func New(data []byte) (*Jsonic, error) {
 // with the index enclosed within square brackets or it can be
 // the key of the object.
 func (j *Jsonic) Child(path string) (*Jsonic, error) {
+	if path == dot {
+		return j, nil
+	}
 	return j.child(strings.Split(path, dot))
 }
 
