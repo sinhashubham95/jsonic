@@ -1,0 +1,34 @@
+{
+  "a": 1,
+  "b": 2.2,
+  "c": true,
+  "d": "naruto",
+  "e": [
+    1,
+    2
+  ],
+  "f": [
+    1.1,
+    2.2
+  ],
+  "g": [
+    true,
+    false
+  ],
+  "h": [
+    "naruto",
+    "boruto"
+  ],
+  "i": {
+    "naruto": 1
+  },
+  "j": {
+    "naruto": 1.1
+  },
+  "k": {
+    "naruto": true
+  },
+  "l": {
+    "naruto": "rocks"
+  }
+}
