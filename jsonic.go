@@ -63,8 +63,8 @@ func (j *Jsonic) GetInt(path string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if i, ok := val.(int); ok {
-		return i, nil
+	if i, ok := val.(float64); ok {
+		return int(i), nil
 	}
 	return 0, ErrInvalidType
 }
@@ -75,8 +75,8 @@ func (j *Jsonic) GetInt64(path string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	if i, ok := val.(int64); ok {
-		return i, nil
+	if i, ok := val.(float64); ok {
+		return int64(i), nil
 	}
 	return 0, ErrInvalidType
 }
@@ -87,8 +87,8 @@ func (j *Jsonic) GetFloat(path string) (float32, error) {
 	if err != nil {
 		return 0, err
 	}
-	if f, ok := val.(float32); ok {
-		return f, nil
+	if f, ok := val.(float64); ok {
+		return float32(f), nil
 	}
 	return 0, ErrInvalidType
 }
@@ -149,8 +149,8 @@ func (j *Jsonic) GetIntArray(path string) ([]int, error) {
 	}
 	iArr := make([]int, len(val))
 	for index, v := range val {
-		if i, ok := v.(int); ok {
-			iArr[index] = i
+		if i, ok := v.(float64); ok {
+			iArr[index] = int(i)
 		}
 	}
 	return iArr, nil
@@ -164,8 +164,8 @@ func (j *Jsonic) GetInt64Array(path string) ([]int64, error) {
 	}
 	iArr := make([]int64, len(val))
 	for index, v := range val {
-		if i, ok := v.(int64); ok {
-			iArr[index] = i
+		if i, ok := v.(float64); ok {
+			iArr[index] = int64(i)
 		}
 	}
 	return iArr, nil
@@ -179,8 +179,8 @@ func (j *Jsonic) GetFloatArray(path string) ([]float32, error) {
 	}
 	fArr := make([]float32, len(val))
 	for index, v := range val {
-		if f, ok := v.(float32); ok {
-			fArr[index] = f
+		if f, ok := v.(float64); ok {
+			fArr[index] = float32(f)
 		}
 	}
 	return fArr, nil
@@ -251,8 +251,8 @@ func (j *Jsonic) GetIntMap(path string) (map[string]int, error) {
 	}
 	iMap := make(map[string]int)
 	for k, v := range val {
-		if i, ok := v.(int); ok {
-			iMap[k] = i
+		if i, ok := v.(float64); ok {
+			iMap[k] = int(i)
 		}
 	}
 	return iMap, nil
@@ -266,8 +266,8 @@ func (j *Jsonic) GetInt64Map(path string) (map[string]int64, error) {
 	}
 	iMap := make(map[string]int64)
 	for k, v := range val {
-		if i, ok := v.(int64); ok {
-			iMap[k] = i
+		if i, ok := v.(float64); ok {
+			iMap[k] = int64(i)
 		}
 	}
 	return iMap, nil
@@ -281,8 +281,8 @@ func (j *Jsonic) GetFloatMap(path string) (map[string]float32, error) {
 	}
 	fMap := make(map[string]float32)
 	for k, v := range val {
-		if f, ok := v.(float32); ok {
-			fMap[k] = f
+		if f, ok := v.(float64); ok {
+			fMap[k] = float32(f)
 		}
 	}
 	return fMap, nil
@@ -363,7 +363,7 @@ func (j *Jsonic) childFromArray(array []interface{}, path []string) (*Jsonic, er
 }
 
 func (j *Jsonic) childFromObject(object map[string]interface{}, path []string) (*Jsonic, error) {
-	current := path[0]
+	current := ""
 	// this loop is to handle the following scenario
 	// say the path elements are as follows a, b and c
 	// it might so happen that each of a, a.b and a.b.c are
@@ -371,6 +371,7 @@ func (j *Jsonic) childFromObject(object map[string]interface{}, path []string) (
 	// each of them a fair chance. the only thing is we
 	// are giving preference in the following order a > a.b > a.b.c
 	for i, p := range path {
+		current += p
 		if cached := j.checkInCache(current); cached != nil {
 			result, err := cached.child(path[i+1:])
 			if err == nil {
@@ -387,7 +388,7 @@ func (j *Jsonic) childFromObject(object map[string]interface{}, path []string) (
 			}
 		}
 		// nothing here, check further
-		current = joinPath(current, p)
+		current += dot
 	}
 	return nil, ErrNoDataFound
 }
@@ -408,7 +409,6 @@ func (j *Jsonic) child(path []string) (*Jsonic, error) {
 		return j.childFromObject(object, path)
 	}
 	return nil, ErrUnexpectedJSONData
-
 }
 
 func getIndex(element string) (int, error) {
@@ -426,8 +426,4 @@ func (j *Jsonic) saveInCache(path string, child *Jsonic) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	j.cache[path] = child
-}
-
-func joinPath(first, second string) string {
-	return first + dot + second
 }
