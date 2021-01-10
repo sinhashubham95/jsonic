@@ -42,8 +42,10 @@ func New(data []byte) (*Jsonic, error) {
 // with the index enclosed within square brackets or it can be
 // the key of the object.
 func (j *Jsonic) Child(path string) (*Jsonic, error) {
-	if path == dot {
-		return j, nil
+	if path == dot || path == empty {
+		// this is a special case where we just need to check if the root
+		// has a dot as key or empty as key
+		return j.getDotOrEmptyChild(path), nil
 	}
 	return j.child(strings.Split(path, dot))
 }
@@ -55,6 +57,18 @@ func (j *Jsonic) Get(path string) (interface{}, error) {
 		return nil, err
 	}
 	return child.data, nil
+}
+
+// GetTyped is used to get the data at the path specified in the value provided.
+// this value can be of any type, but preferably use a struct
+// using it with primitives will return an error
+// note that here a pointer should be used as value
+func (j *Jsonic) GetTyped(path string, val interface{}) error {
+	child, err := j.Child(path)
+	if err != nil {
+		return err
+	}
+	return child.parseInto(val)
 }
 
 // GetInt is used to get the integer at the path specified.
@@ -341,6 +355,21 @@ func new(data interface{}) *Jsonic {
 	}
 }
 
+func (j *Jsonic) getDotOrEmptyChild(path string) *Jsonic {
+	if object, ok := j.data.(map[string]interface{}); ok {
+		if cached := j.checkInCache(path); cached != nil {
+			return cached
+		}
+		if data, ok := object[path]; ok {
+			child := new(data)
+			j.saveInCache(path, child)
+			return child
+		}
+	}
+	// in any other scenario we just return the root
+	return j
+}
+
 func (j *Jsonic) childFromArray(array []interface{}, path []string) (*Jsonic, error) {
 	// get the index, which should be there as the first path element
 	index, err := getIndex(path[0])
@@ -409,6 +438,14 @@ func (j *Jsonic) child(path []string) (*Jsonic, error) {
 		return j.childFromObject(object, path)
 	}
 	return nil, ErrUnexpectedJSONData
+}
+
+func (j *Jsonic) parseInto(val interface{}) error {
+	b, err := json.Marshal(j.data)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(b, val)
 }
 
 func getIndex(element string) (int, error) {
