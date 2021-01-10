@@ -368,3 +368,65 @@ func TestTypedMap(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, jsonic.ErrInvalidType, err)
 }
+
+type TestTyped1 struct {
+	X string `json:"x"`
+}
+
+type TestType2 struct {
+	A  string `json:"a"`
+	CD struct {
+		E string `json:"e"`
+	} `json:"c.d"`
+}
+
+func TestGetTyped(t *testing.T) {
+	j, err := jsonic.New(readFromFile("test_data/test1.json", t))
+	assert.NoError(t, err)
+	assert.NotNil(t, j)
+
+	// object
+	var t1 TestTyped1
+	err = j.GetTyped("a", &t1)
+	assert.NoError(t, err)
+	assert.Equal(t, "p", t1.X)
+
+	// array
+	var t2 []TestType2
+	err = j.GetTyped("a.arr", &t2)
+	assert.NoError(t, err)
+	assert.NotNil(t, t2)
+	assert.Equal(t, 1, len(t2))
+	assert.Equal(t, "b", t2[0].A)
+	assert.Equal(t, "f", t2[0].CD.E)
+
+	// not found
+	var t3 TestTyped1
+	err = j.GetTyped("z", &t3)
+	assert.Error(t, err)
+	assert.Equal(t, jsonic.ErrNoDataFound, err)
+
+	// invalid type
+	var t4 TestTyped1
+	err = j.GetTyped("a.x.y", &t4)
+	assert.Error(t, err)
+	assert.Equal(t, err.Error(), "json: cannot unmarshal string into Go value of type jsonic_test.TestTyped1")
+}
+
+func TestDotOrEmptyChild(t *testing.T) {
+	j, err := jsonic.New(readFromFile("test_data/test3.json", t))
+	assert.NoError(t, err)
+	assert.NotNil(t, j)
+
+	s, err := j.GetString(".")
+	assert.NoError(t, err)
+	assert.Equal(t, "a", s)
+
+	s, err = j.GetString("")
+	assert.NoError(t, err)
+	assert.Equal(t, "b", s)
+
+	s, err = j.GetString("")
+	assert.NoError(t, err)
+	assert.Equal(t, "b", s)
+}
