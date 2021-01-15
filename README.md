@@ -4,6 +4,7 @@
 [![Release](https://img.shields.io/github/v/release/sinhashubham95/jsonic?sort=semver)](https://github.com/sinhashubham95/jsonic/releases)
 [![Report](https://goreportcard.com/badge/github.com/sinhashubham95/jsonic)](https://goreportcard.com/report/github.com/sinhashubham95/jsonic)
 [![Coverage Status](https://coveralls.io/repos/github/sinhashubham95/jsonic/badge.svg?branch=master)](https://coveralls.io/github/sinhashubham95/jsonic?branch=master)
+[![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go#json)
 
 `Jsonic` is the complete set of utilities to handle json data. There's no need to define structs anymore. It's completely safe to perform nested queries in the JSON. The strong typed methods part of this library will help you have the desired result without writing any extra code.
 
